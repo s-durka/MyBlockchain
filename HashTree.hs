@@ -47,10 +47,9 @@ type MerklePath = [Either Hash Hash]
 
 data MerkleProof a = MerkleProof a MerklePath
 
--- buildProof :: Hashable a => a -> Tree a -> Maybe (MerkleProof a)
 
 merklePaths :: Hashable a => a -> Tree a -> [MerklePath]
-merklePaths x (Leaf h val) = []
+merklePaths x (Leaf h val) = if hash x == h then [[]] else []
 merklePaths x (Node h l r)
     = let
         leftMPs = merklePaths x l                           -- lazy eval
@@ -59,20 +58,24 @@ merklePaths x (Node h l r)
         rightHash = Left $ treeHash r :: Either Hash Hash   -- hash of right subtree, path goes down
     in let
         -- append each Merkle Path in the subtree with the hash value of the opposite branch
-        lmps = if leftMPs == [] && not (treeHash l == hash x) 
-            then []                         -- x is not in the left subtree
-            else fmap (rightHash:) leftMPs  -- x is in the left subtree
-        rmps = if rightMPs == [] && not (treeHash r == hash x) 
-            then []                         -- x is not in the right subtree
-            else fmap (leftHash:) rightMPs  -- x is in the right subtree
+        lmps = if leftMPs == [] -- && not (treeHash l == hash x) 
+                then []                       -- x is not in the left subtree
+                else fmap (rightHash:) leftMPs  -- x is in the left subtree
+        rmps = if rightMPs == [] -- && not (treeHash r == hash x) 
+                then []                       -- x is not in the right subtree
+                else fmap (leftHash:) rightMPs  -- x is in the right subtree
     in
         lmps ++ rmps
 merklePaths x (Twig h l)
     = let
         leftMPs = merklePaths x l                   -- lazy eval
-        -- no right subtree => copy hash of left subtree
-        rightHash = Left $ treeHash l :: Either Hash Hash   
+        -- no right subtree => copy hash of left subtree (treeHash r := treeHash l)
+        rightHash = Left $ treeHash l :: Either Hash Hash
     in
         -- append each Merkle Path in the subtree with the hash value of the opposite branch
-        if leftMPs == [] && not (treeHash l == hash x) then [] -- x is not in the subtree
-        else fmap (rightHash:) leftMPs                         -- x is in the subtree
+        if leftMPs == [] -- && not (treeHash l == hash x) 
+            then [] -- x is not in the subtree
+            else fmap (rightHash:) leftMPs                         -- x is in the subtree
+
+-- buildProof :: Hashable a => a -> Tree a -> Maybe (MerkleProof a)
+-- buildProof x t = case (merklePaths)
