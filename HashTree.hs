@@ -32,18 +32,16 @@ node l r = Node (hash (treeHash l, treeHash r)) l r
 buildTree :: Hashable a => [a] -> Tree a
 buildTree list = 
     let 
-        leafList :: Hashable a => [a] -> [Tree a]
-        leafList [] = []
-        leafList (x:xs) = (leaf x):(leafList xs)
-        buildTree' :: Hashable a => Int -> [Tree a] -> [Tree a]
-        -- the integer value denotes whether or not this is the first index of the list
-        -- (0 <=> yes, 1 <=> no)
-        buildTree' _ [] = []
-        buildTree' _ (l:r:xs) = buildTree' 0 ((node l r):(buildTree' 1 xs))
-        buildTree' 1 (l:_) =  [twig l] -- due to pattern matching, we know this is a (sub)list of size 1 
-        buildTree' 0 (l:_) = [l]       -- the whole list consists of a single element
-    in let leaves = leafList list 
-    in let [t] = buildTree' 0 leaves
+        buildLevel :: Hashable a => [Tree a] -> [Tree a]
+        buildLevel [] = []
+        buildLevel (l:r:xs) = (node l r):(buildLevel xs)
+        buildLevel [l] =  [twig l]
+    in let
+        buildTree' :: Hashable a => [Tree a] -> [Tree a]
+        buildTree' [root] = [root]
+        buildTree' l = buildTree' $ buildLevel l    -- pattern match for lists of length > 1
+    in let leaves = fmap leaf list 
+    in let [t] = buildTree' leaves
     in t
 
 treeHash :: Tree a -> Hash
@@ -53,13 +51,7 @@ treeHash (Twig h _) = h
 
 -- the information of where our node lies is in the *constructor* (Left/Right),
 -- and the Hash value holds the hash of the *other* child tree
-type MerklePath = [Either Hash Hash] 
-
-fromEither :: Either a a -> a
-fromEither (Right a) = a
-fromEither (Left a) = a
-
-
+type MerklePath = [Either Hash Hash]
 
 showMerklePath' :: MerklePath -> ShowS
 -- showMerklePath path = fmap (VH . fromEither) path
