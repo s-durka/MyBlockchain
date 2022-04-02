@@ -7,6 +7,19 @@ instance Eq a => Eq (Tree a) where
     Leaf h x == Leaf h' y = x == y
     Node h l r == Node h' l' r' = (h==h')&&(l==l')&&(r==r')
 
+drawTree :: Show a => Tree a -> String
+drawTree t
+    = let
+        showTabs :: Int -> ShowS
+        showTabs 0 = showString ""
+        showTabs n = showString "  " . showTabs (n-1)
+        dt :: Show a => Int -> Tree a -> ShowS -- int value denotes number of tabs
+        dt i (Leaf h x) = showTabs i . showString (showHash h) . shows x . showString "\n"
+        dt i (Node h l r) = showTabs i . showString (showHash h) . showString "-\n" . dt (i+1) l . dt (i+1) r
+        dt i (Twig h l) = showTabs i . showString (showHash h) . showString "+\n" . dt (i+1) l
+    in dt 0 t ""
+
+
 leaf :: Hashable a => a -> Tree a
 leaf x = Leaf (hash x) x
 
@@ -38,15 +51,40 @@ treeHash (Leaf h _) = h
 treeHash (Node h _ _) = h
 treeHash (Twig h _) = h
 
--- drawTree :: Show a => Tree a -> String
-
 -- the information of where our node lies is in the *constructor* (Left/Right),
 -- and the Hash value holds the hash of the *other* child tree
 type MerklePath = [Either Hash Hash] 
 
+fromEither :: Either a a -> a
+fromEither (Right a) = a
+fromEither (Left a) = a
 
-data MerkleProof a = MerkleProof a MerklePath
 
+
+showMerklePath' :: MerklePath -> ShowS
+-- showMerklePath path = fmap (VH . fromEither) path
+showMerklePath' ((Right h):hs) = showString ">" . showString (showHash h) . showMerklePath' hs
+showMerklePath' ((Left h):hs) = showString "<" . showString (showHash h) . showMerklePath' hs
+showMerklePath' [] = showString ""
+
+showMerklePath :: MerklePath -> String
+showMerklePath path = showMerklePath' path ""
+
+-- data MerkleProof a = MerkleProof a MerklePath
+--     deriving Show
+
+data MerkleProof a = MerkleProof a MerklePath -- where
+    deriving Show
+    -- show (MerkleProof x path) = 
+    
+    -- g :: MerkleProof -> ShowS
+    -- g  (MerkleProof x path) = showString "MerkleProof " . shows x .  
+
+buildProof :: Hashable a => a -> Tree a -> Maybe (MerkleProof a)
+buildProof x t
+    | paths == [] = Nothing
+    | otherwise = Just $ MerkleProof x (head paths)
+    where paths = merklePaths x t
 
 merklePaths :: Hashable a => a -> Tree a -> [MerklePath]
 merklePaths x (Leaf h val) = if hash x == h then [[]] else []
@@ -58,24 +96,15 @@ merklePaths x (Node h l r)
         rightHash = Left $ treeHash r :: Either Hash Hash   -- hash of right subtree, path goes down
     in let
         -- append each Merkle Path in the subtree with the hash value of the opposite branch
-        lmps = if leftMPs == [] -- && not (treeHash l == hash x) 
-                then []                       -- x is not in the left subtree
-                else fmap (rightHash:) leftMPs  -- x is in the left subtree
-        rmps = if rightMPs == [] -- && not (treeHash r == hash x) 
-                then []                       -- x is not in the right subtree
-                else fmap (leftHash:) rightMPs  -- x is in the right subtree
+        lmps = if leftMPs == [] then [] else fmap (rightHash:) leftMPs  -- x is in the left subtree
+        rmps = if rightMPs == [] then [] else fmap (leftHash:) rightMPs  -- x is in the right subtree
     in
         lmps ++ rmps
 merklePaths x (Twig h l)
     = let
-        leftMPs = merklePaths x l                   -- lazy eval
+        leftMPs = merklePaths x l
         -- no right subtree => copy hash of left subtree (treeHash r := treeHash l)
         rightHash = Left $ treeHash l :: Either Hash Hash
-    in
-        -- append each Merkle Path in the subtree with the hash value of the opposite branch
-        if leftMPs == [] -- && not (treeHash l == hash x) 
-            then [] -- x is not in the subtree
-            else fmap (rightHash:) leftMPs                         -- x is in the subtree
+    in  -- append each Merkle Path in the subtree with the hash value of the opposite branch
+        if leftMPs == [] then [] else fmap (rightHash:) leftMPs 
 
--- buildProof :: Hashable a => a -> Tree a -> Maybe (MerkleProof a)
--- buildProof x t = case (merklePaths)
