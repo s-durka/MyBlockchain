@@ -65,12 +65,16 @@ showMerklePath path = showMerklePath' path ""
 -- data MerkleProof a = MerkleProof a MerklePath
 --     deriving Show
 
-data MerkleProof a = MerkleProof a MerklePath -- where
-    deriving Show
-    -- show (MerkleProof x path) = 
-    
-    -- g :: MerkleProof -> ShowS
-    -- g  (MerkleProof x path) = showString "MerkleProof " . shows x .  
+data MerkleProof a = MerkleProof a MerklePath
+
+instance Show a => Show (MerkleProof a) where
+    show (MerkleProof x merklePath) = g x merklePath "" where
+        g :: Show a => a -> MerklePath -> ShowS
+        g x path = showString "MerkleProof " . shows x . showMerklePath' path
+    -- show = g "" where
+    --     g :: (MerkleProof a) -> ShowS
+    --     g (MerkleProof x path) = showString "MerkleProof " . shows x . showMerklePath' path
+
 
 buildProof :: Hashable a => a -> Tree a -> Maybe (MerkleProof a)
 buildProof x t
