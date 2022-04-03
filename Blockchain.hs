@@ -4,7 +4,7 @@ import Data.Word
 
 import Hashable32
 import HashTree
-import PPrint
+-- import PPrint -- JA ZAKOMENTOWAŁEM
 import Utils
 
 type Address = Hash
@@ -56,7 +56,42 @@ type Miner = Address
 type Nonce = Word32
 
 mineBlock :: Miner -> Hash -> [Transaction] -> Block
-mineBlock miner parent txs = undefined
+-- mineBlock miner parent txs = mineBlock' (2^difficulty) miner parent txs
+mineBlock = mineBlock' 0 
+
+mineBlock' :: Hash -> Miner -> Hash -> [Transaction] -> Block
+mineBlock' nonce miner parent txs
+    | validNonce (newHdr) == False = tryNext
+    | verifyBlock newBlock parent == Nothing = tryNext
+    | otherwise = newBlock
+    where 
+        newHdr = createHeader nonce miner parent txs
+        newBlock = Block newHdr txs
+        tryNext = mineBlock' (nonce+1) miner parent txs
+
+createHeader :: Hash -> Miner -> Hash -> [Transaction] -> BlockHeader
+createHeader nonce miner parent txs 
+    = let cb = coinbaseTx miner
+    in BlockHeader {parent = parent, coinbase = cb, txroot = (treeHash (buildTree (cb:txs))), nonce = nonce}
+
+-- mineBlock' :: Hash -> Miner -> Hash -> [Transaction] -> Block
+-- mineBlock' nonce miner parent txs
+--     | validNonce (blockHdr newBlock) == False = mineBlock' (nonce+1) miner parent txs
+--     | verifyBlock newBlock parent == Nothing = mineBlock' (nonce+1) miner parent txs
+--     | otherwise = newBlock
+--     where newBlock = createBlock nonce miner parent txs
+
+-- createBlock :: Hash -> Miner -> Hash -> [Transaction] -> Block
+-- createBlock nonce miner parent txs
+--     = let 
+--         cb = coinbaseTx miner
+--     in let newHdr = BlockHeader {parent = parent, coinbase = cb, txroot = (treeHash (buildTree (cb:txs))), nonce = nonce}
+--     in Block newHdr txs
+
+
+
+-- BlockHeader {parent = 797158976, coinbase = Tx {txFrom = 0, txTo = 1392748814, txAmount = 50000}, txroot = 2327748117, nonce = 3}
+
 
 genesis = block0
 block0 = mineBlock (hash "Satoshi") 0 []
@@ -115,6 +150,8 @@ TxReceipt {txrBlock = 230597504, txrProof = MerkleProof (Tx {txFrom = 2030195168
 True
 -}
 
+{- JA USUNĄŁEM:
+
 data TransactionReceipt = TxReceipt
   {  txrBlock :: Hash, txrProof :: MerkleProof Transaction } deriving Show
 
@@ -124,6 +161,8 @@ validateReceipt r hdr = txrBlock r == hash hdr
 
 mineTransactions :: Miner -> Hash -> [Transaction] -> (Block, [TransactionReceipt])
 mineTransactions miner parent txs = undefined
+
+-}
 
 {- | Pretty printing
 >>> runShows $ pprBlock block2
@@ -190,6 +229,7 @@ Tx# 0xbcc3e45a from: 0000000000 to: 0x5303a90e amount: 50000
 Tx# 0x085e2467 from: 0x790251e0 to: 0xb1011705 amount: 1000
 -}
 
+{- JA USUNĄŁEM:
 pprHeader :: BlockHeader -> ShowS
 pprHeader self@(BlockHeader parent cb txroot nonce)
   = pprV [ p ("hash", VH $ hash self)
@@ -223,3 +263,4 @@ pprTx tx@(Tx from to amount)
 
 pprTxs :: [Transaction] -> ShowS
 pprTxs = pprV . map pprTx
+-}
