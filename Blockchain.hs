@@ -4,7 +4,7 @@ import Data.Word
 
 import Hashable32
 import HashTree
--- import PPrint -- JA ZAKOMENTOWAŁEM
+-- import PPrint -- TODO
 import Utils
 
 type Address = Hash
@@ -56,7 +56,7 @@ type Miner = Address
 type Nonce = Word32
 
 mineBlock :: Miner -> Hash -> [Transaction] -> Block
--- mineBlock miner parent txs = mineBlock' (2^difficulty) miner parent txs
+-- mineBlock miner parent txs = mineBlock' 0 miner parent txs
 mineBlock = mineBlock' 0 
     where
         mineBlock' :: Hash -> Miner -> Hash -> [Transaction] -> Block
@@ -105,12 +105,6 @@ validChain :: [Block] -> Bool
 -- validChain = undefined
 validChain block = verifyChain block /= Nothing
 
--- elimMaybe :: c -> (a -> c) -> Maybe a -> c
--- elimMaybe c f Nothing = c
--- elimMaybe _ f (Just x) = f x
-
-
-
 verifyChain :: [Block] -> Maybe Hash
 -- verifyChain = undefined
 verifyChain [] = Just 0
@@ -123,10 +117,22 @@ verifyChain (b:bs) = mapMaybe (verifyBlock b) (verifyChain bs)
 verifyBlock :: Block -> Hash -> Maybe Hash
 verifyBlock b@(Block hdr txs) parentHash = do
   guard (parent hdr == parentHash)
-  guard (txroot hdr == treeHash (buildTree (coinbase hdr:txs)))
+  guard (txroot hdr == treeHash (buildTree (coinbase hdr:txs))) -- txroot == hash of the merkle tree of [coinbase, transactions]
   guard (validNonce hdr)
 --   guard ((txFrom $ coinbase hdr) == 0 && (txAmount $ coinbase hdr) == blockReward) -- TODO 
   return (hash b)
+
+
+data TransactionReceipt = TxReceipt
+  {  txrBlock :: Hash, txrProof :: MerkleProof Transaction } deriving Show
+
+validateReceipt :: TransactionReceipt -> BlockHeader -> Bool
+validateReceipt r hdr = txrBlock r == hash hdr
+                        && verifyProof (txroot hdr) (txrProof r)
+
+mineTransactions :: Miner -> Hash -> [Transaction] -> (Block, [TransactionReceipt])
+mineTransactions miner parent txs = undefined
+-- mineTransactions miner parent txs = 
 
 {- | Transaction Receipts
 NB the following will not work in VS Code, see below
@@ -158,19 +164,8 @@ TxReceipt {txrBlock = 230597504, txrProof = MerkleProof (Tx {txFrom = 2030195168
 True
 -}
 
-{- JA USUNĄŁEM:
 
-data TransactionReceipt = TxReceipt
-  {  txrBlock :: Hash, txrProof :: MerkleProof Transaction } deriving Show
 
-validateReceipt :: TransactionReceipt -> BlockHeader -> Bool
-validateReceipt r hdr = txrBlock r == hash hdr
-                        && verifyProof (txroot hdr) (txrProof r)
-
-mineTransactions :: Miner -> Hash -> [Transaction] -> (Block, [TransactionReceipt])
-mineTransactions miner parent txs = undefined
-
--}
 
 {- | Pretty printing
 >>> runShows $ pprBlock block2
