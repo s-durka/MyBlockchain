@@ -62,15 +62,14 @@ showMerklePath' [] = showString ""
 showMerklePath :: MerklePath -> String
 showMerklePath path = showMerklePath' path ""
 
--- data MerkleProof a = MerkleProof a MerklePath
---     deriving Show
 
 data MerkleProof a = MerkleProof a MerklePath
+--     deriving Show
 
 instance Show a => Show (MerkleProof a) where
     show (MerkleProof x merklePath) = g x merklePath "" where
         g :: Show a => a -> MerklePath -> ShowS
-        g x path = showString "MerkleProof " . shows x . showMerklePath' path
+        g x path = showString "MerkleProof " . shows x . showString " " . showMerklePath' path
     -- show = g "" where
     --     g :: (MerkleProof a) -> ShowS
     --     g (MerkleProof x path) = showString "MerkleProof " . shows x . showMerklePath' path
@@ -103,4 +102,26 @@ merklePaths x (Twig h l)
         rightHash = Left $ treeHash l :: Either Hash Hash
     in  -- append each Merkle Path in the subtree with the hash value of the opposite branch
         if leftMPs == [] then [] else fmap (rightHash:) leftMPs 
+
+fromEither :: Either a a -> a
+fromEither (Right a) = a
+fromEither (Left a) = a
+
+verifyProof :: Hashable a => Hash -> MerkleProof a -> Bool
+verifyProof h (MerkleProof v path) = getHash v path == h
+-- verifyProof rootHash (MerkleProof val y:ys) = hash (fromEither y, 
+
+geth :: Hashable a => MerkleProof a -> Hash
+geth (MerkleProof v path) = getHash v path
+    
+getHash :: Hashable a => a -> MerklePath -> Hash
+getHash v [] = hash v
+getHash v (y:ys) = case y of
+    (Right h) -> hash (h, getHash v ys)
+    (Left h)  -> hash (getHash v ys, h)
+
+getPath :: MerkleProof a -> MerklePath
+getPath (MerkleProof x path) = path
+
+
 
