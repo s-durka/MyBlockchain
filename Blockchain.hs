@@ -58,16 +58,16 @@ type Nonce = Word32
 mineBlock :: Miner -> Hash -> [Transaction] -> Block
 -- mineBlock miner parent txs = mineBlock' (2^difficulty) miner parent txs
 mineBlock = mineBlock' 0 
-
-mineBlock' :: Hash -> Miner -> Hash -> [Transaction] -> Block
-mineBlock' nonce miner parent txs
-    | validNonce (newHdr) == False = tryNext
-    | verifyBlock newBlock parent == Nothing = tryNext
-    | otherwise = newBlock
-    where 
-        newHdr = createHeader nonce miner parent txs
-        newBlock = Block newHdr txs
-        tryNext = mineBlock' (nonce+1) miner parent txs
+    where
+        mineBlock' :: Hash -> Miner -> Hash -> [Transaction] -> Block
+        mineBlock' nonce miner parent txs
+            | validNonce (newHdr) == False = tryNext
+            | verifyBlock newBlock parent == Nothing = tryNext
+            | otherwise = newBlock
+            where 
+                newHdr = createHeader nonce miner parent txs
+                newBlock = Block newHdr txs
+                tryNext = mineBlock' (nonce+1) miner parent txs
 
 createHeader :: Hash -> Miner -> Hash -> [Transaction] -> BlockHeader
 createHeader nonce miner parent txs 
@@ -102,13 +102,23 @@ chain = [block2, block1, block0]
 -- Just 0x0dbea380
 
 validChain :: [Block] -> Bool
-validChain = undefined
--- validChain = verifyChain /= Nothing
+-- validChain = undefined
+validChain block = verifyChain block /= Nothing
+
+-- elimMaybe :: c -> (a -> c) -> Maybe a -> c
+-- elimMaybe c f Nothing = c
+-- elimMaybe _ f (Just x) = f x
+
+
 
 verifyChain :: [Block] -> Maybe Hash
-verifyChain = undefined
--- verifyChain ((b@(Block hdr txs)):bs) = 
-
+-- verifyChain = undefined
+verifyChain [] = Just 0
+verifyChain (b:bs) = mapMaybe (verifyBlock b) (verifyChain bs)
+    where
+    mapMaybe :: (a -> Maybe b) -> Maybe a -> Maybe b
+    mapMaybe f Nothing = Nothing
+    mapMaybe f (Just x) = f x
 
 verifyBlock :: Block -> Hash -> Maybe Hash
 verifyBlock b@(Block hdr txs) parentHash = do
