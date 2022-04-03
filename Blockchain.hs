@@ -88,11 +88,6 @@ createHeader nonce miner parent txs
 --     in let newHdr = BlockHeader {parent = parent, coinbase = cb, txroot = (treeHash (buildTree (cb:txs))), nonce = nonce}
 --     in Block newHdr txs
 
-
-
--- BlockHeader {parent = 797158976, coinbase = Tx {txFrom = 0, txTo = 1392748814, txAmount = 50000}, txroot = 2327748117, nonce = 3}
-
-
 genesis = block0
 block0 = mineBlock (hash "Satoshi") 0 []
 block1 = mineBlock (hash "Alice") (hash genesis) []
@@ -108,17 +103,20 @@ chain = [block2, block1, block0]
 
 validChain :: [Block] -> Bool
 validChain = undefined
+-- validChain = verifyChain /= Nothing
 
 verifyChain :: [Block] -> Maybe Hash
 verifyChain = undefined
+-- verifyChain ((b@(Block hdr txs)):bs) = 
+
 
 verifyBlock :: Block -> Hash -> Maybe Hash
 verifyBlock b@(Block hdr txs) parentHash = do
   guard (parent hdr == parentHash)
   guard (txroot hdr == treeHash (buildTree (coinbase hdr:txs)))
   guard (validNonce hdr)
+--   guard ((txFrom $ coinbase hdr) == 0 && (txAmount $ coinbase hdr) == blockReward) -- TODO 
   return (hash b)
-
 
 {- | Transaction Receipts
 NB the following will not work in VS Code, see below
