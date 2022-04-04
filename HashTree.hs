@@ -81,27 +81,28 @@ buildProof x t
     | otherwise = Just $ MerkleProof x (head paths)
     where 
         paths = merklePaths x t
-        merklePaths :: Hashable a => a -> Tree a -> [MerklePath]
-        merklePaths x (Leaf h val) = if hash x == h then [[]] else []
-        merklePaths x (Node h l r)
-            = let
-                leftMPs = merklePaths x l                           -- lazy eval
-                rightMPs = merklePaths x r                          -- lazy eval
-                leftHash = Right $ treeHash l :: Either Hash Hash   -- hash of left subtree, path goes right
-                rightHash = Left $ treeHash r :: Either Hash Hash   -- hash of right subtree, path goes down
-            in let
-                -- append each Merkle Path in the subtree with the hash value of the opposite branch
-                lmps = if leftMPs == [] then [] else fmap (rightHash:) leftMPs  -- x is in the left subtree
-                rmps = if rightMPs == [] then [] else fmap (leftHash:) rightMPs  -- x is in the right subtree
-            in
-                lmps ++ rmps
-        merklePaths x (Twig h l)
-            = let
-                leftMPs = merklePaths x l
-                -- no right subtree => copy hash of left subtree (treeHash r := treeHash l)
-                rightHash = Left $ treeHash l :: Either Hash Hash
-            in  -- append each Merkle Path in the subtree with the hash value of the opposite branch
-                if leftMPs == [] then [] else fmap (rightHash:) leftMPs
+        
+merklePaths :: Hashable a => a -> Tree a -> [MerklePath]
+merklePaths x (Leaf h val) = if hash x == h then [[]] else []
+merklePaths x (Node h l r)
+    = let
+        leftMPs = merklePaths x l                           -- lazy eval
+        rightMPs = merklePaths x r                          -- lazy eval
+        leftHash = Right $ treeHash l :: Either Hash Hash   -- hash of left subtree, path goes right
+        rightHash = Left $ treeHash r :: Either Hash Hash   -- hash of right subtree, path goes down
+    in let
+        -- append each Merkle Path in the subtree with the hash value of the opposite branch
+        lmps = if leftMPs == [] then [] else fmap (rightHash:) leftMPs  -- x is in the left subtree
+        rmps = if rightMPs == [] then [] else fmap (leftHash:) rightMPs  -- x is in the right subtree
+    in
+        lmps ++ rmps
+merklePaths x (Twig h l)
+    = let
+        leftMPs = merklePaths x l
+        -- no right subtree => copy hash of left subtree (treeHash r := treeHash l)
+        rightHash = Left $ treeHash l :: Either Hash Hash
+    in  -- append each Merkle Path in the subtree with the hash value of the opposite branch
+        if leftMPs == [] then [] else fmap (rightHash:) leftMPs
  
 
 fromEither :: Either a a -> a
