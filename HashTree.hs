@@ -14,9 +14,9 @@ drawTree t
         showTabs 0 = showString ""
         showTabs n = showString "  " . showTabs (n-1)
         dt :: Show a => Int -> Tree a -> ShowS -- int value denotes number of tabs
-        dt i (Leaf h x) = showTabs i . showString (showHash h) . shows x . showString "\n"
-        dt i (Node h l r) = showTabs i . showString (showHash h) . showString "-\n" . dt (i+1) l . dt (i+1) r
-        dt i (Twig h l) = showTabs i . showString (showHash h) . showString "+\n" . dt (i+1) l
+        dt i (Leaf h x) = showTabs i . showString (showHash h) .showChar ' ' . shows x . showString "\n"
+        dt i (Node h l r) = showTabs i . showString (showHash h) . showString " -\n" . dt (i+1) l . dt (i+1) r
+        dt i (Twig h l) = showTabs i . showString (showHash h) . showString " +\n" . dt (i+1) l
     in dt 0 t ""
 
 
