@@ -139,13 +139,12 @@ validateReceipt r hdr = txrBlock r == hash hdr
                         && verifyProof (txroot hdr) (txrProof r)
 
 mineTransactions :: Miner -> Hash -> [Transaction] -> (Block, [TransactionReceipt])
--- mineTransactions miner parent txs = undefined
 mineTransactions miner parent txs = (block, receipts) where 
     fromMaybe' :: Maybe a -> a
     fromMaybe' (Just x) = x
     block = mineBlock miner parent txs
     receipts = fmap createReceipt txs
-    txsTree = buildTree txs
+    txsTree = buildTree $ coinbaseTx miner:txs
     createReceipt :: Transaction -> TransactionReceipt
     createReceipt tx = TxReceipt { txrBlock = (hash block), txrProof = fromMaybe' (buildProof tx txsTree) }
 
