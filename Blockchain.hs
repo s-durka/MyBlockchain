@@ -122,18 +122,42 @@ verifyBlock b@(Block hdr txs) parentHash = do
 --   guard ((txFrom $ coinbase hdr) == 0 && (txAmount $ coinbase hdr) == blockReward) -- TODO 
   return (hash b)
 
+fromMaybe :: a -> Maybe a -> a
+fromMaybe y Nothing = y
+fromMaybe _ (Just x) = x
+
 
 data TransactionReceipt = TxReceipt
   {  txrBlock :: Hash, txrProof :: MerkleProof Transaction } deriving Show
-
+-- data Transaction = Tx
+--   { txFrom :: Address
+--   , txTo :: Address
+--   , txAmount :: Amount
+--   } deriving Show
 validateReceipt :: TransactionReceipt -> BlockHeader -> Bool
 validateReceipt r hdr = txrBlock r == hash hdr
                         && verifyProof (txroot hdr) (txrProof r)
 
 mineTransactions :: Miner -> Hash -> [Transaction] -> (Block, [TransactionReceipt])
-mineTransactions miner parent txs = undefined
--- mineTransactions miner parent txs = 
+-- mineTransactions miner parent txs = undefined
+mineTransactions miner parent txs = (block, receipts) where 
+    fromMaybe' :: Maybe a -> a
+    fromMaybe' (Just x) = x
+    block = mineBlock miner parent txs
+    receipts = fmap createReceipt txs
+    txsTree = buildTree txs
+    createReceipt :: Transaction -> TransactionReceipt
+    createReceipt tx = TxReceipt { txrBlock = (hash block), txrProof = fromMaybe' (buildProof tx txsTree) }
 
+-- mineTransactions miner parent txs = 
+tx = Tx {
+    txFrom = 2030195168,
+    txTo = 2969638661,
+    txAmount = 1000}
+proof = MerkleProof (Tx {
+    txFrom = 2030195168,
+    txTo = 2969638661,
+    txAmount = 1000})
 {- | Transaction Receipts
 NB the following will not work in VS Code, see below
 >>> let charlie = hash "Charlie"
