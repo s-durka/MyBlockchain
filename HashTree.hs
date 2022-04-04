@@ -66,10 +66,12 @@ showMerklePath path = showMerklePath' path ""
 data MerkleProof a = MerkleProof a MerklePath
 --     deriving Show
 
-instance Show a => Show (MerkleProof a) where -- TODO showsPrec!!! dla nawiasów ()
-    show (MerkleProof x merklePath) = g x merklePath "" where
-        g :: Show a => a -> MerklePath -> ShowS
-        g x path = showString "MerkleProof " . shows x . showString " " . showMerklePath' path
+instance Show a => Show (MerkleProof a) where 
+    -- show (MerkleProof x merklePath) = g x merklePath "" where
+    showsPrec p (MerkleProof x merklePath) = showParen (p>10) (g p x merklePath)
+        where 
+        g :: Show a => Int -> a -> MerklePath -> ShowS
+        g p x path = showString "MerkleProof " . showParen (p<10) (shows x) . showString " " . showMerklePath' path
     -- show = g "" where
     --     g :: (MerkleProof a) -> ShowS
     --     g (MerkleProof x path) = showString "MerkleProof " . shows x . showMerklePath' path
@@ -81,7 +83,7 @@ buildProof x t
     | otherwise = Just $ MerkleProof x (head paths)
     where 
         paths = merklePaths x t
-        
+
 merklePaths :: Hashable a => a -> Tree a -> [MerklePath]
 merklePaths x (Leaf h val) = if hash x == h then [[]] else []
 merklePaths x (Node h l r)
