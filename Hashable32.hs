@@ -3,7 +3,7 @@ module Hashable32( Hash
                  , VisiHash(..)
                  , showHash, showsHash
                  ) where
--- import Data.Bits(shiftL,shiftR,testBit,xor)
+
 import Data.List(foldl')
 import Data.Word(Word32)
 import Text.Printf
@@ -49,14 +49,3 @@ instance Hashable a => Hashable [a] where
   hash [] = 0
   hash [x] = hash x
   hash (x:xs) = hash x `combine` hash xs
-
-{-
-data SP = SP !Hash !Hash
-instance Hashable a => Hashable [a] where
-  hashWithSalt salt arr = finalise (foldl' step (SP salt 0) arr)
-      where
-        finalise :: SP -> Hash
-        finalise (SP s l) = hashWithSalt s l
-        -- step :: SP -> a -> SP
-        step (SP s l) x   = SP (hashWithSalt s x) (l + 1)
--}
