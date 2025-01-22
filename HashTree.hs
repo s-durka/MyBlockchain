@@ -64,17 +64,12 @@ showMerklePath path = showMerklePath' path ""
 
 
 data MerkleProof a = MerkleProof a MerklePath
---     deriving Show
 
 instance Show a => Show (MerkleProof a) where 
-    -- show (MerkleProof x merklePath) = g x merklePath "" where
     showsPrec p (MerkleProof x merklePath) = showParen (p>10) (g p x merklePath)
         where 
         g :: Show a => Int -> a -> MerklePath -> ShowS
         g p x path = showString "MerkleProof " . showParen (p<10) (shows x) . showString " " . showMerklePath' path
-    -- show = g "" where
-    --     g :: (MerkleProof a) -> ShowS
-    --     g (MerkleProof x path) = showString "MerkleProof " . shows x . showMerklePath' path
 
 
 buildProof :: Hashable a => a -> Tree a -> Maybe (MerkleProof a)
@@ -113,7 +108,6 @@ fromEither (Left a) = a
 
 verifyProof :: Hashable a => Hash -> MerkleProof a -> Bool
 verifyProof h (MerkleProof v path) = getHash v path == h
--- verifyProof rootHash (MerkleProof val y:ys) = hash (fromEither y, 
 
 geth :: Hashable a => MerkleProof a -> Hash
 geth (MerkleProof v path) = getHash v path
