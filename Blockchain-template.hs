@@ -84,37 +84,6 @@ verifyBlock b@(Block hdr txs) parentHash = do
   guard (validNonce hdr)
   return (hash b)
 
-
-{- | Transaction Receipts
-NB the following will not work in VS Code, see below
->>> let charlie = hash "Charlie"
->>> let (block, [receipt]) = mineTransactions charlie (hash block1) [tx1]
->>> block
-BlockHeader {parent = 797158976, coinbase = Tx {txFrom = 0, txTo = 1392748814, txAmount = 50000}, txroot = 2327748117, nonce = 3}
-Tx {txFrom = 2030195168, txTo = 2969638661, txAmount = 1000}
-<BLANKLINE>
-
->>> receipt
-TxReceipt {txrBlock = 230597504, txrProof = MerkleProof (Tx {txFrom = 2030195168, txTo = 2969638661, txAmount = 1000}) >0xbcc3e45a}
->>> validateReceipt receipt (blockHdr block)
-True
--}
-
--- For VS Code, we need to use the "error trick"
-{- Transaction Receipts
->>> let charlie = hash "Charlie"
->>> let (block, [receipt]) = mineTransactions charlie (hash block1) [tx1]
->>> error $ show block
-BlockHeader {parent = 797158976, coinbase = Tx {txFrom = 0, txTo = 1392748814, txAmount = 50000}, txroot = 2327748117, nonce = 3}
-Tx {txFrom = 2030195168, txTo = 2969638661, txAmount = 1000}
-
->>> receipt
-TxReceipt {txrBlock = 230597504, txrProof = MerkleProof (Tx {txFrom = 2030195168, txTo = 2969638661, txAmount = 1000}) >0xbcc3e45a}
-
->>> validateReceipt receipt (blockHdr block)
-True
--}
-
 data TransactionReceipt = TxReceipt
   {  txrBlock :: Hash, txrProof :: MerkleProof Transaction } deriving Show
 
