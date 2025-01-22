@@ -4,7 +4,6 @@ import Data.Word
 
 import Hashable32
 import HashTree
--- import PPrint -- TODO
 import Utils
 
 type Address = Hash
@@ -74,20 +73,6 @@ createHeader nonce miner parent txs
     = let cb = coinbaseTx miner
     in BlockHeader {parent = parent, coinbase = cb, txroot = (treeHash (buildTree (cb:txs))), nonce = nonce}
 
--- mineBlock' :: Hash -> Miner -> Hash -> [Transaction] -> Block
--- mineBlock' nonce miner parent txs
---     | validNonce (blockHdr newBlock) == False = mineBlock' (nonce+1) miner parent txs
---     | verifyBlock newBlock parent == Nothing = mineBlock' (nonce+1) miner parent txs
---     | otherwise = newBlock
---     where newBlock = createBlock nonce miner parent txs
-
--- createBlock :: Hash -> Miner -> Hash -> [Transaction] -> Block
--- createBlock nonce miner parent txs
---     = let 
---         cb = coinbaseTx miner
---     in let newHdr = BlockHeader {parent = parent, coinbase = cb, txroot = (treeHash (buildTree (cb:txs))), nonce = nonce}
---     in Block newHdr txs
-
 genesis = block0
 block0 = mineBlock (hash "Satoshi") 0 []
 block1 = mineBlock (hash "Alice") (hash genesis) []
@@ -102,11 +87,9 @@ chain = [block2, block1, block0]
 -- Just 0x0dbea380
 
 validChain :: [Block] -> Bool
--- validChain = undefined
 validChain block = verifyChain block /= Nothing
 
 verifyChain :: [Block] -> Maybe Hash
--- verifyChain = undefined
 verifyChain [] = Just 0
 verifyChain (b:bs) = mapMaybe (verifyBlock b) (verifyChain bs)
     where
@@ -119,7 +102,7 @@ verifyBlock b@(Block hdr txs) parentHash = do
   guard (parent hdr == parentHash)
   guard (txroot hdr == treeHash (buildTree (coinbase hdr:txs))) -- txroot == hash of the merkle tree of [coinbase, transactions]
   guard (validNonce hdr)
---   guard ((txFrom $ coinbase hdr) == 0 && (txAmount $ coinbase hdr) == blockReward) -- TODO 
+
   return (hash b)
 
 fromMaybe :: a -> Maybe a -> a
@@ -129,11 +112,7 @@ fromMaybe _ (Just x) = x
 
 data TransactionReceipt = TxReceipt
   {  txrBlock :: Hash, txrProof :: MerkleProof Transaction } deriving Show
--- data Transaction = Tx
---   { txFrom :: Address
---   , txTo :: Address
---   , txAmount :: Amount
---   } deriving Show
+
 validateReceipt :: TransactionReceipt -> BlockHeader -> Bool
 validateReceipt r hdr = txrBlock r == hash hdr
                         && verifyProof (txroot hdr) (txrProof r)
@@ -148,7 +127,6 @@ mineTransactions miner parent txs = (block, receipts) where
     createReceipt :: Transaction -> TransactionReceipt
     createReceipt tx = TxReceipt { txrBlock = (hash block), txrProof = fromMaybe' (buildProof tx txsTree) }
 
--- mineTransactions miner parent txs = 
 tx = Tx {
     txFrom = 2030195168,
     txTo = 2969638661,
@@ -157,136 +135,3 @@ proof = MerkleProof (Tx {
     txFrom = 2030195168,
     txTo = 2969638661,
     txAmount = 1000})
-{- | Transaction Receipts
-NB the following will not work in VS Code, see below
->>> let charlie = hash "Charlie"
->>> let (block, [receipt]) = mineTransactions charlie (hash block1) [tx1]
->>> block
-BlockHeader {parent = 797158976, coinbase = Tx {txFrom = 0, txTo = 1392748814, txAmount = 50000}, txroot = 2327748117, nonce = 3}
-Tx {txFrom = 2030195168, txTo = 2969638661, txAmount = 1000}
-<BLANKLINE>
-
->>> receipt
-TxReceipt {txrBlock = 230597504, txrProof = MerkleProof (Tx {txFrom = 2030195168, txTo = 2969638661, txAmount = 1000}) >0xbcc3e45a}
->>> validateReceipt receipt (blockHdr block)
-True
--}
-
--- For VS Code, we need to use the "error trick"
---  Transaction Receipts
--- >>> let charlie = hash "Charlie"
--- >>> let (block, [receipt]) = mineTransactions charlie (hash block1) [tx1]
--- >>> error $ show block
--- BlockHeader {parent = 797158976, coinbase = Tx {txFrom = 0, txTo = 1392748814, txAmount = 50000}, txroot = 2327748117, nonce = 3}
--- Tx {txFrom = 2030195168, txTo = 2969638661, txAmount = 1000}
-
--- >>> receipt
--- TxReceipt {txrBlock = 230597504, txrProof = MerkleProof (Tx {txFrom = 2030195168, txTo = 2969638661, txAmount = 1000}) >0xbcc3e45a}
-
--- >>> validateReceipt receipt (blockHdr block)
--- True
-
-
-
-
-
-{- | Pretty printing
->>> runShows $ pprBlock block2
-hash: 0x0dbea380
-parent: 0x2f83ae40
-miner: 0x5303a90e
-root: 0x8abe9e15
-nonce: 3
-Tx# 0xbcc3e45a from: 0000000000 to: 0x5303a90e amount: 50000
-Tx# 0x085e2467 from: 0x790251e0 to: 0xb1011705 amount: 1000
-
->>> runShows $ pprListWith pprBlock [block0, block1, block2]
-hash: 0x70b432e0
-parent: 0000000000
-miner: 0x7203d9df
-root: 0x5b10bd5d
-nonce: 18
-Tx# 0x5b10bd5d from: 0000000000 to: 0x7203d9df amount: 50000
-hash: 0x2f83ae40
-parent: 0x70b432e0
-miner: 0x790251e0
-root: 0x5ea7a6f0
-nonce: 0
-Tx# 0x5ea7a6f0 from: 0000000000 to: 0x790251e0 amount: 50000
-hash: 0x0dbea380
-parent: 0x2f83ae40
-miner: 0x5303a90e
-root: 0x8abe9e15
-nonce: 3
-Tx# 0xbcc3e45a from: 0000000000 to: 0x5303a90e amount: 50000
-Tx# 0x085e2467 from: 0x790251e0 to: 0xb1011705 amount: 1000
--}
-
--- Now for VS Code:
-{-
->>> error $ pprBlock block2 ""
-hash: 0x0dbea380
-parent: 0x2f83ae40
-miner: 0x5303a90e
-root: 0x8abe9e15
-nonce: 3
-Tx# 0xbcc3e45a from: 0000000000 to: 0x5303a90e amount: 50000
-Tx# 0x085e2467 from: 0x790251e0 to: 0xb1011705 amount: 1000
-
->>> error $ pprListWith pprBlock [block0, block1, block2] ""
-hash: 0x70b432e0
-parent: 0000000000
-miner: 0x7203d9df
-root: 0x5b10bd5d
-nonce: 18
-Tx# 0x5b10bd5d from: 0000000000 to: 0x7203d9df amount: 50000
-hash: 0x2f83ae40
-parent: 0x70b432e0
-miner: 0x790251e0
-root: 0x5ea7a6f0
-nonce: 0
-Tx# 0x5ea7a6f0 from: 0000000000 to: 0x790251e0 amount: 50000
-hash: 0x0dbea380
-parent: 0x2f83ae40
-miner: 0x5303a90e
-root: 0x8abe9e15
-nonce: 3
-Tx# 0xbcc3e45a from: 0000000000 to: 0x5303a90e amount: 50000
-Tx# 0x085e2467 from: 0x790251e0 to: 0xb1011705 amount: 1000
--}
-
-{- JA USUNĄŁEM:
-pprHeader :: BlockHeader -> ShowS
-pprHeader self@(BlockHeader parent cb txroot nonce)
-  = pprV [ p ("hash", VH $ hash self)
-         , p ("parent", VH $ parent)
-         , p ("miner", VH $ txTo cb)
-         , p ("root", VH txroot)
-         , p ("nonce", nonce)
-         ]
-  where
-    nl = showString "\n"
-    p :: Show a => (String, a) -> ShowS
-    p = showsPair
-
-pprBlock :: Block -> ShowS
-pprBlock (Block header txs)
- = pprHeader header
- . showChar '\n'
- . pprTxs (coinbase header:txs)
-
-pprTx :: Transaction -> ShowS
-pprTx tx@(Tx from to amount)
-  = pprH [ showString "Tx#"
-         , showsHash (hash tx)
-         , p ("from", VH from)
-         , p ("to", VH to)
-         , p ("amount", amount)
-         ]
-  where
-    p :: Show a => (String, a) -> ShowS
-    p = showsPair
-
-pprTxs :: [Transaction] -> ShowS
-pprTxs = pprV . map pprTx
--}
